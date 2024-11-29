@@ -9,24 +9,33 @@ import SwiftUI
 import SwiftData
 
 @main
-struct Folk_s_DBApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+//struct Folk_s_DBApp: App {
+//    var sharedModelContainer: ModelContainer = {
+//        let schema = Schema([
+//            Item.self,
+//        ])
+//        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+//
+//        do {
+//            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+//        } catch {
+//            fatalError("Could not create ModelContainer: \(error)")
+//        }
+//    }()
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+struct KeyValueStoreApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .modelContainer(for: [KeyValueData.self]) // Initialize SwiftData container
         }
-        .modelContainer(sharedModelContainer)
     }
 }
+
+//    var body: some Scene {
+//        WindowGroup {
+//            ContentView()
+//        }
+//        .modelContainer(sharedModelContainer)
+//    }
+//}

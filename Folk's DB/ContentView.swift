@@ -4,57 +4,56 @@
 //
 //  Created by Mohammad-Hossein Emami on 27.11.24.
 //
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Environment(\.modelContext) private var context // SwiftData context
+    @Query private var keyValueData: [KeyValueData] // Query all KeyValueData entries
+    
+    @State private var showAddEditSheet = false
+    @State private var selectedData: KeyValueData? // For editing
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationView {
+            VStack {
+                List {
+                    ForEach(keyValueData) { data in
+                        VStack(alignment: .leading) {
+                            Text("ID: \(data.id)").bold()
+                            ForEach(data.keyValuePairs.keys.sorted(), id: \.self) { key in
+                                Text("\(key): \(data.keyValuePairs[key] ?? "")")
+                            }
+                        }
+                        .onTapGesture {
+                            selectedData = data // Select data for editing
+                            showAddEditSheet = true
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                
+                Button("Add New Data") {
+                    selectedData = nil // No selection for new data
+                    showAddEditSheet = true
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .padding()
+            }
+            .sheet(isPresented: $showAddEditSheet) {
+                AddEditKeyValueView(existingData: $selectedData) { updatedData in
+                    if let selectedData = selectedData {
+                        // Update existing entry
+                        selectedData.keyValuePairs = updatedData.keyValuePairs
+                    } else {
+                        // Add new entry
+                        context.insert(updatedData)
                     }
+                    try? context.save()
                 }
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            .navigationTitle("VolksDB")
         }
     }
 }
-
 #Preview {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
