@@ -15,8 +15,8 @@ A datastore for iOS devices, designed to serve as an alternative to traditional 
 1. Clone the repository:
    ```bash
    git clone https://github.com/nuit-dhiver/folk-s-db
-
-	2.	Open the project in Xcode and build the app to your iOS device.
+   
+2. Open the project in Xcode and build the app to your iOS device.
 
 ### Usage
 
