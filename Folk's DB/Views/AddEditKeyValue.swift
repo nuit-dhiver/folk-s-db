@@ -9,8 +9,10 @@ import SwiftUI
 
 struct AddEditKeyValueView: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var existingData: KeyValueData? // Reference to existing data
-    
+    @Binding var existingData: KeyValueData? // Reference for editing
+    var parentCollection: Collection // The collection the record belongs to
+
+    @State private var recordID: String = ""
     @State private var keyValuePairs: [String: String] = [:]
     @State private var key: String = ""
     @State private var value: String = ""
@@ -20,10 +22,14 @@ struct AddEditKeyValueView: View {
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Record ID")) {
+                    Text(recordID.isEmpty ? "New Record" : recordID)
+                }
+
                 Section(header: Text("Add Key-Value Pair")) {
                     TextField("Key", text: $key)
                     TextField("Value", text: $value)
-                    
+
                     Button("Add Pair") {
                         if !key.isEmpty {
                             keyValuePairs[key] = value
@@ -32,7 +38,7 @@ struct AddEditKeyValueView: View {
                         }
                     }
                 }
-                
+
                 Section(header: Text("Current Pairs")) {
                     ForEach(keyValuePairs.keys.sorted(), id: \.self) { key in
                         HStack {
@@ -45,10 +51,13 @@ struct AddEditKeyValueView: View {
             }
             .onAppear {
                 if let existingData = existingData {
-                    keyValuePairs = existingData.keyValuePairs // Load existing pairs
+                    recordID = existingData.id // Load record ID for editing
+                    keyValuePairs = existingData.keyValuePairs
+                } else {
+                    recordID = UUID().uuidString // Generate new ID for new records
                 }
             }
-            .navigationTitle(existingData == nil ? "Add Data" : "Edit Data")
+            .navigationTitle(existingData == nil ? "Add Record" : "Edit Record")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -58,8 +67,9 @@ struct AddEditKeyValueView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         let newData = KeyValueData(
-                            id: existingData?.id ?? UUID().uuidString,
-                            keyValuePairs: keyValuePairs
+                            id: recordID,
+                            keyValuePairs: keyValuePairs,
+                            collection: parentCollection
                         )
                         onSave(newData)
                         dismiss()

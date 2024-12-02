@@ -7,53 +7,40 @@
 import SwiftUI
 import SwiftData
 
+
 struct ContentView: View {
     @Environment(\.modelContext) private var context // SwiftData context
-    @Query private var keyValueData: [KeyValueData] // Query all KeyValueData entries
-    
-    @State private var showAddEditSheet = false
-    @State private var selectedData: KeyValueData? // For editing
+    @Query private var collections: [Collection] // Query all collections
+
+    @State private var showAddCollectionSheet = false
 
     var body: some View {
         NavigationView {
             VStack {
                 List {
-                    ForEach(keyValueData) { data in
-                        VStack(alignment: .leading) {
-                            Text("ID: \(data.id)").bold()
-                            ForEach(data.keyValuePairs.keys.sorted(), id: \.self) { key in
-                                Text("\(key): \(data.keyValuePairs[key] ?? "")")
-                            }
-                        }
-                        .onTapGesture {
-                            selectedData = data // Select data for editing
-                            showAddEditSheet = true
+                    ForEach(collections) { collection in
+                        NavigationLink(destination: CollectionDetailView(collection: collection)) {
+                            Text(collection.name)
                         }
                     }
                 }
                 
-                Button("Add New Data") {
-                    selectedData = nil // No selection for new data
-                    showAddEditSheet = true
+                Button("Add New Collection") {
+                    showAddCollectionSheet = true
                 }
                 .padding()
             }
-            .sheet(isPresented: $showAddEditSheet) {
-                AddEditKeyValueView(existingData: $selectedData) { updatedData in
-                    if let selectedData = selectedData {
-                        // Update existing entry
-                        selectedData.keyValuePairs = updatedData.keyValuePairs
-                    } else {
-                        // Add new entry
-                        context.insert(updatedData)
-                    }
+            .sheet(isPresented: $showAddCollectionSheet) {
+                AddCollectionView { newCollection in
+                    context.insert(newCollection)
                     try? context.save()
                 }
             }
-            .navigationTitle("VolksDB")
+            .navigationTitle("Collections")
         }
     }
 }
+
 #Preview {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
