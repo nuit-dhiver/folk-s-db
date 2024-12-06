@@ -13,6 +13,8 @@ struct CollectionDetailView: View {
 
     @State private var showAddEditSheet = false
     @State private var selectedData: KeyValueData? // For editing existing data
+    @State private var showingShareSheet = false
+    @State private var fileURL: URL? // URL of the exported JSON file
 
     var body: some View {
         VStack {
@@ -31,11 +33,18 @@ struct CollectionDetailView: View {
                 }
             }
 
-            Button("Add Record") {
-                selectedData = nil // New record
-                showAddEditSheet = true
+            HStack {
+                Button("Add Record") {
+                    selectedData = nil // New record
+                    showAddEditSheet = true
+                }
+                .padding()
+
+                Button("Export Data") {
+                    ExportAndShareCollection()
+                }
+                .padding()
             }
-            .padding()
         }
         .sheet(isPresented: $showAddEditSheet) {
             AddEditKeyValueView(
@@ -50,6 +59,25 @@ struct CollectionDetailView: View {
                 try? context.save()
             }
         }
+        .sheet(isPresented: $showingShareSheet, content: {
+            if let fileURL = fileURL {
+                Text("Preparing to share file: \(fileURL.path)")
+                ShareSheet(activityItems: [fileURL])
+            } else {
+                Text("No file URL available for sharing.")
+            }
+        })
+            
         .navigationTitle(collection.name)
+    }
+
+    private func ExportAndShareCollection() {
+        do {
+            let exportedFileURL = try ExportCollectionAsJSON(collection: collection)
+            self.fileURL = exportedFileURL
+            showingShareSheet = true
+        } catch {
+            print("Failed to export collection: \(error)")
+        }
     }
 }
