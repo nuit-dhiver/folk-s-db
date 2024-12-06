@@ -15,6 +15,7 @@ struct CollectionDetailView: View {
     @State private var selectedData: KeyValueData? // For editing existing data
     @State private var showingShareSheet = false
     @State private var fileURL: URL? // URL of the exported JSON file
+    @State private var documentPickerDelegate: DocumentPickerDelegate? = nil
 
     var body: some View {
         VStack {
@@ -41,7 +42,7 @@ struct CollectionDetailView: View {
                 .padding()
 
                 Button("Export Data") {
-                    ExportAndShareCollection()
+                    ExportCollection()
                 }
                 .padding()
             }
@@ -60,24 +61,34 @@ struct CollectionDetailView: View {
             }
         }
         .sheet(isPresented: $showingShareSheet, content: {
-            if let fileURL = fileURL {
-                Text("Preparing to share file: \(fileURL.path)")
-                ShareSheet(activityItems: [fileURL])
-            } else {
-                Text("No file URL available for sharing.")
-            }
+            ShareSheet(activityItems: [fileURL])
         })
             
         .navigationTitle(collection.name)
     }
 
-    private func ExportAndShareCollection() {
+    private func ExportCollection() {
         do {
             let exportedFileURL = try ExportCollectionAsJSON(collection: collection)
             self.fileURL = exportedFileURL
-            showingShareSheet = true
+            
+            let delegate = DocumentPickerDelegate()
+            self.documentPickerDelegate = delegate
+            
+            // Show the iOS file picker for saving
+            let documentPicker = UIDocumentPickerViewController(forExporting: [exportedFileURL])
+            documentPicker.delegate = delegate
+            
+            // Find the current window scene and present the document picker
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(documentPicker, animated: true) {
+                    //self.showSaveAlert = true
+                }
+        }
         } catch {
-            print("Failed to export collection: \(error)")
+            print("Error exporting collection: \(error)")
         }
     }
-}
+    }
+    
