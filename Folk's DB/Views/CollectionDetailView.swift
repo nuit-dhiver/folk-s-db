@@ -13,6 +13,9 @@ struct CollectionDetailView: View {
 
     @State private var showAddEditSheet = false
     @State private var selectedData: KeyValueData? // For editing existing data
+    @State private var showingShareSheet = false
+    @State private var fileURL: URL? // URL of the exported JSON file
+    @State private var documentPickerDelegate: DocumentPickerDelegate? = nil
 
     var body: some View {
         VStack {
@@ -31,11 +34,18 @@ struct CollectionDetailView: View {
                 }
             }
 
-            Button("Add Record") {
-                selectedData = nil // New record
-                showAddEditSheet = true
+            HStack {
+                Button("Add Record") {
+                    selectedData = nil // New record
+                    showAddEditSheet = true
+                }
+                .padding()
+
+                Button("Export Data") {
+                    ExportCollection()
+                }
+                .padding()
             }
-            .padding()
         }
         .sheet(isPresented: $showAddEditSheet) {
             AddEditKeyValueView(
@@ -50,6 +60,35 @@ struct CollectionDetailView: View {
                 try? context.save()
             }
         }
+        .sheet(isPresented: $showingShareSheet, content: {
+            ShareSheet(activityItems: [fileURL])
+        })
+            
         .navigationTitle(collection.name)
     }
-}
+
+    private func ExportCollection() {
+        do {
+            let exportedFileURL = try ExportCollectionAsJSON(collection: collection)
+            self.fileURL = exportedFileURL
+            
+            let delegate = DocumentPickerDelegate()
+            self.documentPickerDelegate = delegate
+            
+            // Show the iOS file picker for saving
+            let documentPicker = UIDocumentPickerViewController(forExporting: [exportedFileURL])
+            documentPicker.delegate = delegate
+            
+            // Find the current window scene and present the document picker
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                rootViewController.present(documentPicker, animated: true) {
+                    //self.showSaveAlert = true
+                }
+        }
+        } catch {
+            print("Error exporting collection: \(error)")
+        }
+    }
+    }
+    
