@@ -38,9 +38,9 @@ struct ContentView: View {
             }
             .navigationTitle("Collections")
         }
+        Text("Made with 😐 in Germany")
     }
 }
-
 #Preview {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
