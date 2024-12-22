@@ -11,7 +11,10 @@ A datastore for iOS devices, designed to serve as an alternative to traditional 
 
 ## 🚀 Getting Started
 
-### Installation
+## Download on the App Store
+[![Download on the App Store](https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg)](https://apps.apple.com/app/id6739632007)
+
+### Installation from source
 1. Clone the repository:
    ```bash
    git clone https://github.com/nuit-dhiver/folk-s-db
