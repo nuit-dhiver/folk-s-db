@@ -31,6 +31,14 @@ struct CollectionDetailView: View {
                         selectedData = data
                         showAddEditSheet = true
                     }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            deleteRecord(data, in: context)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+
                 }
             }
 
@@ -91,4 +99,12 @@ struct CollectionDetailView: View {
         }
     }
     }
+
+private func deleteRecord(_ record: KeyValueData, in context: ModelContext) {
+    withAnimation {
+        context.delete(record)
+        try? context.save()
+    }
+}
+
     

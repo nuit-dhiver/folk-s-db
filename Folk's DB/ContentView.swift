@@ -22,6 +22,16 @@ struct ContentView: View {
                         NavigationLink(destination: CollectionDetailView(collection: collection)) {
                             Text(collection.name)
                         }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    context.delete(collection)
+                                    try? context.save()
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 

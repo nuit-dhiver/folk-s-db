@@ -71,10 +71,20 @@ struct AddEditKeyValueView: View {
                             keyValuePairs: keyValuePairs,
                             collection: parentCollection
                         )
+
+                        if let existingData = existingData {
+                            existingData.keyValuePairs = keyValuePairs
+                        } else {
+                            parentCollection.keyValueData.append(newData) 
+                            try? parentCollection.modelContext?.save()
+                        }
+
                         onSave(newData)
                         dismiss()
                     }
                 }
+
+
             }
         }
     }

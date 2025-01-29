@@ -4,11 +4,15 @@
 //
 //  Created by Mohammad-Hossein Emami on 02.12.24.
 //
+import SwiftData
 import SwiftUI
 import SwiftUICore
 
+
+
 struct AddCollectionView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var context // ✅ Inject SwiftData's context
 
     @State private var collectionName: String = ""
     var onSave: (Collection) -> Void
@@ -25,6 +29,7 @@ struct AddCollectionView: View {
                         dismiss()
                     }
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         let newCollection = Collection(name: collectionName)
@@ -36,3 +41,4 @@ struct AddCollectionView: View {
         }
     }
 }
+
