@@ -42,8 +42,10 @@ Folk's DB gives your shortcuts a permanent database. Everything below runs in th
 | Import & Export | Export Collection as JSON · Import Collection from JSON |
 
 **Values and types.** **Set Value** accepts text, a number, a List or a Dictionary. With *Type: Automatic* it detects the type:
-- Numbers, `true`/`false`, lists and dictionaries are stored as those types.
+- Numbers written with a decimal point, `true`/`false`, Dictionaries and JSON lists (like `["a", "b"]`) are stored as those types.
 - Zip codes such as `01234`, phone numbers such as `+49…` and long card numbers stay text.
+- A Shortcuts **List** arrives as one item per line, which Automatic keeps as text. Set *Type* to *List*, or use **Append to List**.
+- Numbers with a decimal comma (`2,5`, as Shortcuts writes them in many languages) stay text with Automatic. Set *Type* to *Number* to store them as numbers. `1,234` is rejected because it could be a thousands separator.
 
 Set *Type* to *Text* to always keep exactly what you typed. Use **Set Date** for dates.
 

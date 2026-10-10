@@ -35,14 +35,8 @@ enum LegacyMigrator {
             } else {
                 // Records without a collection shouldn't exist, but never drop data
                 if recovered == nil {
-                    let taken = Set(collections.map { $0.name.lowercased() })
-                    var name = recoveredCollectionName
-                    var number = 2
-                    while taken.contains(name.lowercased()) {
-                        name = "\(recoveredCollectionName) (\(number))"
-                        number += 1
-                    }
-                    let newCollection = Collection(name: name)
+                    let taken = Set(collections.map { FolkStore.nameKey($0.name) })
+                    let newCollection = Collection(name: FolkStore.uniqueName(recoveredCollectionName, taken: taken))
                     context.insert(newCollection)
                     recovered = newCollection
                 }
@@ -70,15 +64,9 @@ enum LegacyMigrator {
     private static func renameDuplicates(_ collections: [Collection]) {
         var taken = Set<String>()
         for collection in collections {
-            let base = collection.name
-            var name = base
-            var number = 2
-            while taken.contains(name.lowercased()) {
-                name = "\(base) (\(number))"
-                number += 1
-            }
-            if name != base { collection.name = name }
-            taken.insert(name.lowercased())
+            let name = FolkStore.uniqueName(collection.name, taken: taken)
+            if name != collection.name { collection.name = name }
+            taken.insert(FolkStore.nameKey(name))
         }
     }
 }

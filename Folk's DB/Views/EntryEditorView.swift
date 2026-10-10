@@ -142,8 +142,8 @@ struct EntryEditorView: View {
         number = value.json.number.map(JSONValue.format) ?? ""
         if case .bool(let current) = value.json { bool = current }
         date = value.date ?? .now
-        listItems = (value.json.array ?? []).map { EditableItem(text: $0.displayText) }
-        fields = (value.json.object ?? [:]).sorted { $0.key < $1.key }.map { EditableField(key: $0.key, value: $0.value.displayText) }
+        listItems = (value.json.array ?? []).map { EditableItem(text: $0.displayText, original: $0) }
+        fields = (value.json.object ?? [:]).sorted { $0.key < $1.key }.map { EditableField(key: $0.key, value: $0.value.displayText, original: $0.value) }
         hasExpiry = entry.expiresAt != nil
         expiresAt = entry.expiresAt ?? expiresAt
     }
@@ -160,16 +160,22 @@ struct EntryEditorView: View {
         case .date:
             return .date(date)
         case .list:
-            // Items are detected like Shortcuts input: numbers, true/false and JSON become typed, everything else stays text
-            return TypedValue(kind: .list, json: .array(listItems.map { TypedValue.detect($0.text).json }))
+            return TypedValue(kind: .list, json: .array(listItems.map { Self.json(for: $0.text, original: $0.original) }))
         case .dictionary:
             var object: [String: JSONValue] = [:]
             for field in fields {
                 let fieldKey = field.key.trimmingCharacters(in: .whitespaces)
-                if !fieldKey.isEmpty { object[fieldKey] = TypedValue.detect(field.value).json }
+                if !fieldKey.isEmpty { object[fieldKey] = Self.json(for: field.value, original: field.original) }
             }
             return TypedValue(kind: .dictionary, json: .object(object))
         }
+    }
+
+    /// Unchanged items keep their stored value and type. Edited or new ones are detected like Shortcuts input:
+    /// numbers, true/false and JSON become typed, everything else stays text.
+    private static func json(for text: String, original: JSONValue?) -> JSONValue {
+        if let original, original.displayText == text { return original }
+        return TypedValue.detect(text).json
     }
 
     private func save() {
@@ -193,10 +199,12 @@ struct EntryEditorView: View {
 private struct EditableItem: Identifiable {
     let id = UUID()
     var text = ""
+    var original: JSONValue?
 }
 
 private struct EditableField: Identifiable {
     let id = UUID()
     var key = ""
     var value = ""
+    var original: JSONValue?
 }

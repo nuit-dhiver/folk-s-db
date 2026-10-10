@@ -112,13 +112,19 @@ struct ContentView: View {
                         }
                     }
                 }
-            }
-            .alert("Something Went Wrong", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-                Button("OK", role: .cancel) {}
+                // Catch empty and duplicate names here, since an error alert can't show while this one is closing
+                .disabled(!canRename)
             } message: {
-                Text(errorMessage ?? "")
+                if !canRename && !newName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text("A collection with this name already exists.")
+                }
             }
             .navigationTitle("Collections")
+        }
+        .alert("Something Went Wrong", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
         }
         // Opened from Shortcuts, Siri or a Spotlight result
         .onAppIntentExecution(OpenCollectionIntent.self) { intent in
@@ -128,6 +134,12 @@ struct ContentView: View {
             path = [.collection(id: intent.target.collectionID, openKey: intent.target.key)]
         }
         Text("Made with 😐 in Germany")
+    }
+
+    private var canRename: Bool {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+        return store.collection(named: trimmed).map { $0.id == renaming?.id } ?? true
     }
 
     private func importCollection(_ result: Result<URL, Error>) {

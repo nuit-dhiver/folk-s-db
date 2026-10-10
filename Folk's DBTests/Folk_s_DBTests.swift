@@ -40,6 +40,11 @@ struct FolkStoreTests {
         try store.renameCollection(mood, to: "Moods")
         #expect(store.collection(named: "moods")?.id == mood.id)
         #expect(store.uniqueCollectionName("Other") == "Other (2)")
+
+        // Names compare ignoring accents too, so a suggested unique name is always accepted
+        try store.createCollection(name: "Café")
+        #expect(store.uniqueCollectionName("Cafe") == "Cafe (2)")
+        #expect(throws: FolkError.collectionExists("Café")) { try store.createCollection(name: "Cafe") }
     }
 
     @Test func deleteAndClearCollection() throws {
@@ -136,7 +141,27 @@ struct FolkStoreTests {
 
         clock.advance(2)
         #expect(store.value("weather", in: cache) == nil)
-        #expect(cache.entries.isEmpty) // purged on read
+        #expect(cache.entries.count == 1) // reads don't delete; purgeExpired does
+        #expect(store.purgeExpired() == 1)
+        #expect(cache.entries.isEmpty)
+    }
+
+    @Test func expiredKeysCanBeReusedBeforePurge() throws {
+        let cache = try store.createCollection(name: "Cache")
+        try store.set(.text("old"), for: "a", in: cache, expiry: .at(clock.now.addingTimeInterval(10)))
+        try store.set(.text("other"), for: "b", in: cache, expiry: .at(clock.now.addingTimeInterval(10)))
+        try store.set(.text("keep"), for: "c", in: cache)
+        clock.advance(20)
+
+        try store.set(.text("new"), for: "a", in: cache)
+        let reused = try #require(store.entry("a", in: cache))
+        #expect(reused.value == .text("new"))
+        #expect(reused.createdAt == clock.now)
+        #expect(reused.expiresAt == nil)
+
+        try store.renameKey("c", to: "b", in: cache)
+        #expect(store.value("b", in: cache) == .string("keep"))
+        #expect(cache.entries.count == 2)
     }
 
     @Test func writingAWholeValueClearsExpiryButFieldWritesKeepIt() throws {
@@ -171,6 +196,10 @@ struct FolkStoreTests {
         // Numbers stored as text (like converted 1.0 records) still count
         try store.set(.text("4"), for: "legacy", in: counters)
         #expect(try store.increment("legacy", in: counters, by: 1) == 5)
+
+        try store.set(.number(1e308), for: "huge", in: counters)
+        #expect(throws: FolkError.self) { try store.increment("huge", in: counters, by: 1e308) }
+        #expect(store.value("huge", in: counters) == .number(1e308))
 
         try store.set(.text("abc"), for: "word", in: counters)
         #expect(throws: FolkError.notANumber(key: "word", value: "abc")) { try store.increment("word", in: counters, by: 1) }
@@ -393,7 +422,7 @@ struct TypedValueTests {
         #expect(TypedValue.detect(#"{"a": 1}"#) == TypedValue(.object(["a": .number(1)])))
         #expect(TypedValue.detect("[1, \"x\"]") == TypedValue(.array([.number(1), .string("x")])))
         // These stay text
-        for text in ["01234", "+4930123456", "4111111111111111", "hello", "1,5", "{not json"] {
+        for text in ["01234", "+4930123456", "4111111111111111", "hello", "1,5", "{not json", "1e400"] {
             #expect(TypedValue.detect(text) == .text(text), "\(text)")
         }
     }
@@ -401,6 +430,9 @@ struct TypedValueTests {
     @Test func explicitTypes() throws {
         #expect(try TypedValue.parse("01234", as: .text) == .text("01234"))
         #expect(try TypedValue.parse("2,5", as: .number) == .number(2.5))
+        #expect(throws: FolkError.invalidValue(type: "number", value: "1,234")) { try TypedValue.parse("1,234", as: .number) }
+        #expect(JSONValue.parseNumber("1,5,0") == nil)
+        #expect(JSONValue.parseNumber("1e400") == nil)
         #expect(throws: FolkError.invalidValue(type: "number", value: "abc")) { try TypedValue.parse("abc", as: .number) }
         #expect(try TypedValue.parse("yes", as: .boolean) == .bool(true))
         #expect(try TypedValue.parse("2026-10-10", as: .date).kind == .date)

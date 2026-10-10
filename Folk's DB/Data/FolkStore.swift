@@ -115,18 +115,27 @@ final class FolkStore {
 
     /// "Mood", or "Mood (2)", "Mood (3)"… if that name is taken.
     func uniqueCollectionName(_ base: String) -> String {
-        let taken = Set(allCollections().map { $0.name.lowercased() })
+        Self.uniqueName(base, taken: Set(allCollections().map { Self.nameKey($0.name) }))
+    }
+
+    /// `base`, or `base (2)`, `base (3)`… whichever `nameKey` isn't in `taken`.
+    nonisolated static func uniqueName(_ base: String, taken: Set<String>) -> String {
         var name = base
         var number = 2
-        while taken.contains(name.lowercased()) {
+        while taken.contains(nameKey(name)) {
             name = "\(base) (\(number))"
             number += 1
         }
         return name
     }
 
+    /// Collection names are unique ignoring case and accents; this is the form they're compared in.
+    nonisolated static func nameKey(_ name: String) -> String {
+        name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+    }
+
     nonisolated static func sameName(_ lhs: String, _ rhs: String) -> Bool {
-        lhs.compare(rhs, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        nameKey(lhs) == nameKey(rhs)
     }
 
     // MARK: - Reading entries
@@ -139,20 +148,25 @@ final class FolkStore {
             .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
     }
 
-    /// The live entry for `key`. An expired entry is deleted and treated as missing.
+    /// The live entry for `key`. An expired entry reads as missing; `purgeExpired()` deletes it later.
     func entry(_ key: String, in collection: Collection) -> Entry? {
-        entry(lookupKey: Entry.lookupKey(collectionID: collection.id, key: key.trimmingCharacters(in: .whitespacesAndNewlines)))
+        entry(lookupKey: lookupKey(key, in: collection))
     }
 
     func entry(lookupKey: String) -> Entry? {
+        guard let entry = storedEntry(lookupKey: lookupKey), !entry.isExpired(at: now()) else { return nil }
+        return entry
+    }
+
+    /// The stored entry for a lookup key, including an expired one that hasn't been purged yet.
+    private func storedEntry(lookupKey: String) -> Entry? {
         var descriptor = FetchDescriptor<Entry>(predicate: #Predicate { $0.lookupKey == lookupKey })
         descriptor.fetchLimit = 1
-        guard let entry = try? context.fetch(descriptor).first else { return nil }
-        if entry.isExpired(at: now()) {
-            try? deleteEntry(entry)
-            return nil
-        }
-        return entry
+        return try? context.fetch(descriptor).first
+    }
+
+    private func lookupKey(_ key: String, in collection: Collection) -> String {
+        Entry.lookupKey(collectionID: collection.id, key: key.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     func value(_ key: String, field: FieldPath? = nil, in collection: Collection) -> JSONValue? {
@@ -223,6 +237,11 @@ final class FolkStore {
         let newKey = try validKey(newKey)
         guard newKey != entry.key else { return }
         guard self.entry(newKey, in: collection) == nil else { throw FolkError.keyExists(newKey) }
+        if let expired = storedEntry(lookupKey: lookupKey(newKey, in: collection)) {
+            // Free the unique lookup key held by an expired entry before taking it
+            context.delete(expired)
+            try save()
+        }
         let oldLookupKey = entry.lookupKey
         entry.key = newKey
         entry.lookupKey = Entry.lookupKey(collectionID: collection.id, key: newKey)
@@ -256,6 +275,7 @@ final class FolkStore {
             base = number
         }
         let result = base + amount
+        guard result.isFinite else { throw FolkError.invalidValue(type: "number", value: "\(base) + \(amount)") }
         if let field {
             try set(.number(result), for: key, field: field, in: collection, expiry: .keep)
         } else {
@@ -497,6 +517,12 @@ final class FolkStore {
             existing.value = value
             existing.updatedAt = now()
             entry = existing
+        } else if let expired = storedEntry(lookupKey: lookupKey(key, in: collection)) {
+            // The key's lookup key is unique, so reuse an expired row that hasn't been purged as a new entry
+            expired.value = value
+            expired.createdAt = now()
+            expired.updatedAt = now()
+            entry = expired
         } else {
             entry = Entry(key: key, value: value, collectionID: collection.id, now: now())
             context.insert(entry)

@@ -118,7 +118,7 @@ struct TypedValue: Hashable, Sendable {
         }
         if trimmed.wholeMatch(of: /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/) != nil,
            trimmed.filter(\.isNumber).count <= 15,
-           let number = Double(trimmed) {
+           let number = Double(trimmed), number.isFinite {
             return .number(number)
         }
         return .text(text)

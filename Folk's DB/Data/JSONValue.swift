@@ -24,7 +24,12 @@ extension JSONValue {
         case let string as String:
             self = .string(string)
         case let number as NSNumber:
-            self = CFGetTypeID(number) == CFBooleanGetTypeID() ? .bool(number.boolValue) : .number(number.doubleValue)
+            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+                self = .bool(number.boolValue)
+            } else {
+                // JSON can't hold infinity, so keep numbers too large for a Double as text
+                self = number.doubleValue.isFinite ? .number(number.doubleValue) : .string(number.stringValue)
+            }
         case let array as [Any]:
             self = .array(array.map(JSONValue.init(any:)))
         case let object as [String: Any]:
@@ -96,11 +101,13 @@ extension JSONValue {
     static func parseNumber(_ text: String) -> Double? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         if let number = Double(trimmed), number.isFinite { return number }
-        // Accept a decimal comma ("2,5") when there's no decimal point
-        if !trimmed.contains("."), let number = Double(trimmed.replacingOccurrences(of: ",", with: ".")), number.isFinite {
-            return number
+        // Accept a decimal comma ("2,5"), but not "1,234", which may be a thousands separator
+        let parts = trimmed.split(separator: ",", omittingEmptySubsequences: false)
+        guard !trimmed.contains("."), parts.count == 2, parts[1].count != 3,
+              let number = Double("\(parts[0]).\(parts[1])"), number.isFinite else {
+            return nil
         }
-        return nil
+        return number
     }
 }
 
