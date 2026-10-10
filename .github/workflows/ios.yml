@@ -18,7 +18,7 @@ jobs:
       - name: Set Up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.1" 
+          xcode-version: latest-stable
 
       - name: Set Default Scheme
         run: |
