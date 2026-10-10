@@ -62,3 +62,6 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 Folk's DB.xcodeproj/project.pbxproj
 Folk's DB.xcodeproj/project.pbxproj
+
+# App Store screenshots (large, regenerated)
+AppStore/Screenshots/

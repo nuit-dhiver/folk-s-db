@@ -40,20 +40,26 @@ struct EntrySnippetView: View {
     }
 
     private var header: some View {
-        HStack {
-            Label(entry.key, systemImage: entry.kind.systemImage)
-                .font(.headline)
-                .lineLimit(1)
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(entry.key, systemImage: entry.kind.systemImage)
+                    .font(.headline)
+                    .lineLimit(1)
+                Spacer()
                 Text(collection.name)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                if let expiresAt = entry.expiresAt {
+                    .lineLimit(1)
+            }
+            // On its own line, so a long relative time doesn't squeeze the key
+            if let expiresAt = entry.expiresAt {
+                Label {
                     Text("Expires \(expiresAt, style: .relative)")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
+                } icon: {
+                    Image(systemName: "timer")
                 }
+                .font(.caption2)
+                .foregroundStyle(.orange)
             }
         }
     }
