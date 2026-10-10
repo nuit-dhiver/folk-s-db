@@ -45,6 +45,7 @@ struct EntrySnippetView: View {
                 Label(entry.key, systemImage: entry.kind.systemImage)
                     .font(.headline)
                     .lineLimit(1)
+                    .layoutPriority(1)
                 Spacer()
                 Text(collection.name)
                     .font(.caption.weight(.semibold))
@@ -54,7 +55,8 @@ struct EntrySnippetView: View {
             // On its own line, so a long relative time doesn't squeeze the key
             if let expiresAt = entry.expiresAt {
                 Label {
-                    Text("Expires \(expiresAt, style: .relative)")
+                    // A fixed time: a relative one keeps counting up once it passes while the card is open
+                    Text("Expires \(expiresAt, format: .dateTime.month(.abbreviated).day().hour().minute())")
                 } icon: {
                     Image(systemName: "timer")
                 }

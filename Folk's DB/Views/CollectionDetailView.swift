@@ -149,18 +149,19 @@ private struct EntryRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+                // Under the value, like the Shortcuts card, so the time doesn't squeeze the key
+                if let expiresAt = entry.expiresAt {
+                    Label {
+                        Text(expiresAt, style: .relative)
+                    } icon: {
+                        Image(systemName: "timer")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .labelStyle(.titleAndIcon)
+                }
             }
             Spacer(minLength: 0)
-            if let expiresAt = entry.expiresAt {
-                Label {
-                    Text(expiresAt, style: .relative)
-                } icon: {
-                    Image(systemName: "timer")
-                }
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .labelStyle(.titleAndIcon)
-            }
         }
     }
 

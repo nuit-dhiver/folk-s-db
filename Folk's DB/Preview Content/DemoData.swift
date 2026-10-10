@@ -2,7 +2,7 @@
 //  DemoData.swift
 //  Folk's DB
 //
-//  Sample collections for App Store screenshots. Debug builds only:
+//  Sample collections for App Store screenshots. Debug builds in the simulator only:
 //  launch with the "-seedDemoData" argument to replace all data with this set.
 //
 #if DEBUG
@@ -14,17 +14,24 @@ enum DemoData {
     static let launchArgument = "-seedDemoData"
 
     static func seedIfRequested(_ container: ModelContainer) {
+        // Seeding deletes everything, so never on a real device that may hold real data
+        #if targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains(launchArgument) else { return }
         do {
             try seed(container)
         } catch {
             print("Seeding demo data failed: \(error)")
         }
+        #endif
+    }
+
+    private static func list(_ items: String...) -> TypedValue {
+        TypedValue(.array(items.map(JSONValue.string)))
     }
 
     static func seed(_ container: ModelContainer) throws {
         let start = Date.now
-        let store = FolkStore(container: container, indexesSpotlight: false)
+        let store = FolkStore(container: container)
         for collection in store.allCollections() {
             try store.deleteCollection(collection)
         }
@@ -37,7 +44,7 @@ enum DemoData {
         try store.set(.bool(false), for: "focusMode", in: day)
         try store.set(.date(start.addingTimeInterval(-26 * 3600)), for: "lastWorkout", in: day)
         try store.set(.text("Small steps, every day."), for: "motto", in: day)
-        try store.set(TypedValue(.array(["Oat milk", "Avocados", "Sourdough", "Blueberries"].map(JSONValue.string))), for: "groceries", in: day)
+        try store.set(list("Oat milk", "Avocados", "Sourdough", "Blueberries"), for: "groceries", in: day)
         try store.set(TypedValue(.object([
             "name": .string("Alex"),
             "city": .string("Berlin"),
@@ -61,7 +68,7 @@ enum DemoData {
             (98, "😌", 3, "Lazy Sunday"),
         ]
         for item in moods.reversed() {
-            let log = FolkStore(container: container, indexesSpotlight: false, now: { start.addingTimeInterval(-item.hoursAgo * 3600) })
+            let log = FolkStore(container: container, now: { start.addingTimeInterval(-item.hoursAgo * 3600) })
             try log.addEntry(TypedValue(.object([
                 "mood": .string(item.mood),
                 "energy": .number(item.energy),
@@ -74,10 +81,10 @@ enum DemoData {
         try store.set(.bool(true), for: "awayMode", in: home)
         try store.set(.text("Movie night"), for: "scene", in: home)
         try store.set(.date(start.addingTimeInterval(-3 * 3600)), for: "lastArrival", in: home)
-        try store.set(TypedValue(.array(["Living room", "Kitchen", "Hallway"].map(JSONValue.string))), for: "lightsOn", in: home)
+        try store.set(list("Living room", "Kitchen", "Hallway"), for: "lightsOn", in: home)
 
         let jobs = try store.createCollection(name: "Jobs")
-        try store.set(TypedValue(.array(["Resize photos", "Back up notes", "Send invoice"].map(JSONValue.string))), for: "queue", in: jobs)
+        try store.set(list("Resize photos", "Back up notes", "Send invoice"), for: "queue", in: jobs)
         try store.set(.number(128), for: "processed", in: jobs)
         try store.set(.date(start.addingTimeInterval(-40 * 60)), for: "lastRun", in: jobs)
 
@@ -85,7 +92,7 @@ enum DemoData {
         for (key, pages) in [("currentBook", 212.0), ("pagesToday", 34.0), ("booksThisYear", 17.0), ("yearlyGoal", 24.0)] {
             try store.set(.number(pages), for: key, in: reading)
         }
-        try store.set(TypedValue(.array(["Dune", "Piranesi", "The Overstory"].map(JSONValue.string))), for: "wishlist", in: reading)
+        try store.set(list("Dune", "Piranesi", "The Overstory"), for: "wishlist", in: reading)
 
         let flags = try store.createCollection(name: "Flags")
         try store.set(.bool(true), for: "morningRoutine", in: flags, expiry: .at(start.addingTimeInterval(9 * 3600)))
