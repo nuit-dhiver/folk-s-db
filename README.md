@@ -61,9 +61,9 @@ Set *Type* to *Text* to always keep exactly what you typed. Use **Set Date** for
 - List items get a ✓ button that removes them.
 
 **Siri and Spotlight.** These phrases work with no setup:
-- "Add an entry to *Mood* in Folk's DB"
-- "Show the latest entry in *Mood* from Folk's DB"
-- "Open *Mood* in Folk's DB"
+- "Add an entry to *Mood* in VolksDB"
+- "Show the latest entry in *Mood* from VolksDB"
+- "Open *Mood* in VolksDB"
 
 Keys and collections are searchable in Spotlight.
 
