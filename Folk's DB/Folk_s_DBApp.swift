@@ -23,6 +23,9 @@ struct KeyValueStoreApp: App {
         } catch {
             print("Converting version 1.0 records failed: \(error)")
         }
+        #if DEBUG
+        DemoData.seedIfRequested(container)
+        #endif
         let store = FolkStore(container: container)
         store.purgeExpired()
 
